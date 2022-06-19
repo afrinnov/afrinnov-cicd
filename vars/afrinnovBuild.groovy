@@ -1,8 +1,12 @@
-def call(){
+def call(Map pipelineParams){
     def isMaster = env.BRANCH_NAME == 'master'
 
     pipeline {
         agent any
+
+        tools {
+            jdk "${pipelineParams.selectedJdk}"
+        }
 
         environment {
             DOCKER_HUB_CREDS = credentials('docker-afrinnov-service-credentials')
@@ -13,7 +17,7 @@ def call(){
         stages{
             stage ("start") {
                 steps {
-                    echo "Starting..."
+                    echo "Starting... ${pipelineParams.appName}"
                 }
             }
             stage ("build"){
@@ -77,7 +81,7 @@ def call(){
                         if(currentBuild.changeSets.size() > 0) {
                             withCredentials([usernamePassword(credentialsId: REGISTRY_CREDENTIAL, usernameVariable: 'REGISTRY_USERNAME',
                                     passwordVariable: 'REGISTRY_PASSWORD')]) {
-                                sh "./mvnw -DskipTests -P dev jib:build"
+                                sh "./mvnw -DskipTests -P ${pipelineParams.profile} jib:build"
                             }
                         } else {
                             echo 'No Execute JIB'
@@ -100,7 +104,7 @@ def call(){
                         }
                         if(currentBuild.changeSets.size() > 0) {
                             sh "chmod 777 deploy.sh"
-                            sh "sh deploy.sh sysbio_app 58085 dev"
+                            sh "sh deploy.sh ${pipelineParams.appName} ${pipelineParams.port} ${pipelineParams.profile}"
                         } else {
                             echo 'No Execute deploy'
                         }
@@ -129,4 +133,3 @@ def call(){
 def cleanUp() {
     cleanWs(patterns: [[pattern: 'Dockerfile*', type: 'EXCLUDE'],[pattern: 'target/*.jar', type: 'EXCLUDE'],[pattern: 'target/surefire-reports/**', type: 'EXCLUDE'],[pattern: 'target/failsafe-reports/**', type: 'EXCLUDE'], [pattern: 'target/jacoco/**', type: 'EXCLUDE']])
 }
-

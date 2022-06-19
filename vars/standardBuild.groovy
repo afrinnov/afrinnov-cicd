@@ -1,5 +1,5 @@
 def call() {
-   stage('Play'){
-      echo "Hello world"
-   }
+    stage('Play') {
+        echo "Hello world"
+    }
 }
